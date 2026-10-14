@@ -1,0 +1,33 @@
+steps:
+  # Step 1: Build the container image using the Artifact Registry path
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t',
+        'us-central1-docker.pkg.dev/$PROJECT_ID/devops-repo/my-web-app:$COMMIT_SHA',
+        '.',
+      ]
+
+  # Step 2: Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      ['push', 'us-central1-docker.pkg.dev/$PROJECT_ID/devops-repo/my-web-app:$COMMIT_SHA']
+
+  # Step 3: Deploy the container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'devops-web-service'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/devops-repo/my-web-app:$COMMIT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      # Exam Learning Point: Securely mounting secrets from Secret Manager as environment variables
+      - '--set-secrets=DB_PASSWORD=app-db-password:latest'
+      - '--set-env-vars=ENVIRONMENT=Production'
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/devops-repo/my-web-app:$COMMIT_SHA'
